@@ -1,13 +1,17 @@
 function CountAtLoc(player: TrgPlayer, unit: TrgUnit, loc: TrgLocation) {
-    // made by Artanis[M] & safhfh & Jpoker & trgk;
-    var x = 0xFF;
-    foreach(i : py_range(31, -1, -1)) {
-        if (x >= py_pow(2, i)) {
-            x -= py_pow(2, i);
-            if (!Bring(player, AtMost, x, unit, loc)) {
-                x += py_pow(2, i);
-            }
-        }
+    const bring_cond = Bring(0, AtMost, 0, 0, 0);
+    const bring = EPD(bring_cond);
+    const args = 
+        list(bring + 2, SetTo, 0x1FF),
+        list(bring, SetTo, loc),
+	list(unit, Add, 0x3010000),  // TODO: omit this
+        list(bring + 3, SetTo, unit),
+        list(bring + 1, SetTo, player);
+    SeqCompute(args);
+    foreach(i : py_range(8, -1, -1)) {
+        dwsubtract_epd(bring + 2, py_pow(2, i));
+        if (bring_cond) {
+        } else { dwadd_epd(bring + 2, py_pow(2, i)); }
     }
     return x;
 }
@@ -18,14 +22,14 @@ function __LocOrderBase(
     loc: TrgLocation,
 ) {
     const loc_epd = loc * 5;
-    DoActions(loc_epd.AddNumber(EPD(0x58DC4C)));
+    loc_epd += EPD(0x58DC4C);
 
     const x1 = dwread_epd(loc_epd);
-    DoActions(loc_epd.AddNumber(1));
+    loc_epd += 1;
     const y1 = dwread_epd(loc_epd);
-    DoActions(loc_epd.AddNumber(1));
+    loc_epd += 1;
     const x2 = dwread_epd(loc_epd);
-    DoActions(loc_epd.AddNumber(1));
+    loc_epd += 1;
     const y2 = dwread_epd(loc_epd);
 
     const x = (x1 + x2) / 2;
