@@ -1221,8 +1221,13 @@ function AttackGround(
  * 활성화할 상태입니다.
 ***/
 function AddStatusFlagsEPD(epd, flags) {
-    epd += 0xDC / 4;
-    SetMemoryXEPD(epd, SetTo, ~0, flags);
+    const setter = SetDeathsX(0, SetTo, ~0, 0, 0);
+    VProc(list(epd, flags), list(
+        epd.AddNumber(0xDC/4),
+        epd.SetDest(EPD(setter) + 4),
+        flags.SetDest(EPD(setter))
+    ));
+    DoActions(setter);
 }
 
 /***
