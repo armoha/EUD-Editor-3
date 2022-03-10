@@ -1189,23 +1189,50 @@ function AttackGround(
     player: TrgPlayer
 ) {
     if (Memory(0x628438, Exactly, 0)) return;  // avoid EUDError when CCMU
-    const aUnit = cunitepdread_epd(EPD(0x628438))[[1]];
-    CreateUnit(1, attackUnit, attackLoc, player);
-    DoActions(aUnit.AddNumber(0x110 / 4));
-    SetMemoryEPD(aUnit, Add, 2);  // aUnit + 0x110 (CUnit::removeTimer)
-
-    if (Memory(0x628438, Exactly, 0)) return;  // avoid EUDError when CCMU
-    const tunitptr, tunit = cunitepdread_epd(EPD(0x628438));
-    CreateUnit(1, targetUnit, targetLoc, player);
-    DoActions(list(
-        tunit.AddNumber(0x110 / 4),
-        aUnit.AddNumber(-((0x110 - 0x5C) / 4))
+    const aPtr, aUnit = cunitepdread_epd(EPD(0x628438));
+    const SpawnA = CreateUnit(0, 0, 0, 0);
+    const SpawnFailA = Memory(0x628438, Exactly, 0);
+    const RemoveA = SetDeaths(0, Add, 2, 0);
+    VProc(list(aPtr, attackUnit, attackLoc, player), list(
+        aPtr.SetDest(EPD(SpawnFailA) + 2),
+        attackUnit.AddNumber(44 << 16),
+        attackUnit.SetDest(EPD(SpawnA) + 6),
+        attackLoc.SetDest(EPD(SpawnA)),
+        player.SetDest(EPD(SpawnA) + 4),
+        aUnit.AddNumber(0x110 / 4),
+        aUnit.SetDest(EPD(RemoveA) + 4)
     ));
-    SetMemoryEPD(aUnit, SetTo, tunitptr);  // aUnit + 0x5C (CUnit::targetUnit)
-    SetMemoryEPD(tunit, Add, 2);  // tunit + 0x110 (CUnit::removeTimer)
+    DoActions(SpawnA);
 
-    DoActions(aUnit.AddNumber(-((0x5C - 0x4C) / 4)));
-    SetMemoryXEPD(aUnit, SetTo, 0xA00, 0xFF00);  // order[10]=attack, 0x4D (CUnit::order)
+    if (SpawnFailA) return;
+    DoActions(RemoveA);  // aUnit + 0x110 (CUnit::removeTimer)
+    if (Memory(0x628438, Exactly, 0)) return;  // avoid EUDError when CCMU
+    const tPtr, tUnit = cunitepdread_epd(EPD(0x628438));
+    const SpawnT = CreateUnit(0, 0, 0, 0);
+    const SpawnFailT = Memory(0x628438, Exactly, 0);
+    const RemoveT = SetDeaths(0, Add, 2, 0);
+    VProc(list(tPtr, targetUnit, targetLoc, player), list(
+        tPtr.SetDest(EPD(SpawnFailT) + 2),
+        targetUnit.AddNumber(44 << 16),
+        targetUnit.SetDest(EPD(SpawnT) + 6),
+        targetLoc.SetDest(EPD(SpawnT)),
+        player.SetDest(EPD(SpawnT) + 4),
+        tUnit.AddNumber(0x110 / 4),
+        tUnit.SetDest(EPD(RemoveT) + 4)
+    ));
+    DoActions(SpawnT);
+    if (SpawnFailT) return;
+    VProc(list(aUnit, tPtr), list(
+        RemoveT,  // tUnit + 0x110 (CUnit::removeTimer)
+        aUnit.AddNumber(-((0x110 - 0x5C) / 4)),
+        aUnit.SetDest(EPD(tPtr.getDestAddr())),  // aUnit + 0x5C (CUnit::targetUnit)
+    ));
+    const attackOrder = SetMemoryXEPD(0, SetTo, 0xA00, 0xFF00);
+    VProc(aUnit, list(
+        aUnit.AddNumber(-((0x5C - 0x4C) / 4)),
+        aUnit.SetDest(EPD(attackOrder) + 4)
+    ));
+    DoActions(attackOrder);  // order[10]=attack, 0x4D (CUnit::order)
 }
 
 /***
